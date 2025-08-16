@@ -7,7 +7,7 @@ const map = new maplibregl.Map({
 
 map.on('load', () => {
     Promise.all([
-        fetch('./OpenData_RailService.geojson').then(res => res.json()),
+        fetch('./post-CRL-lines.geojson').then(res => res.json()),
         fetch('./OpenData_RailStation.geojson').then(res => res.json())
     ]).then(([railData, stationData]) => {
         // --- Add train stations ---
@@ -67,12 +67,14 @@ map.on('load', () => {
                 let combined = turf.combine(fc);
                 let snapped = combined;
                 if (combined.features[0].geometry.type === 'MultiLineString') {
+                    console.log('Snapping MultiLineString to LineString');
                     snapped = combined.features[0];
                 }
                 snapped.properties = snapped.properties || {};
                 snapped.properties.ROUTENUMBER = route;
                 snapped.properties.OBJECTID = objectId++;
                 dissolved.features.push(snapped);
+                console.log(snapped)
             }
             map.addSource('auckland-railways', {
                 type: 'geojson',
@@ -112,7 +114,8 @@ map.on('load', () => {
                     'line-opacity': 0.8
                 },
                 filter: ['==', 'OBJECTID', -1]
-            });
+            }, 'auckland-rail-stations-circle'); // Add below stations
+
             // Add main rail line layer below stations
             map.addLayer({
                 id: 'auckland-railways',
@@ -130,9 +133,18 @@ map.on('load', () => {
                         'HUIA', '#6C3483',
                         /* other */ '#e63946'
                     ],
-                    'line-width': 3
+                    'line-width': 3,
+                    'line-offset': [
+                        'match',
+                        ['get', 'ROUTENUMBER'],
+                        'WEST', -4,
+                        'ONE', -4,
+                        'SOUTH', 0,
+                        'EAST', -4,
+                        /* other */ 0
+                    ]
                 }
-            }, 'auckland-rail-stations-circle'); // Add below stations
+            }, 'auckland-railways-hover'); // Add below the hover layer
 
             // --- Breathing hover and tooltip logic ---
             let breathing = false;
@@ -144,7 +156,7 @@ map.on('load', () => {
             function animateBreath() {
                 if (!breathing || breathObjectId === null) return;
                 const t = ((performance.now() - breathStart) / 1500) % 2;
-                const width = 6 + 4 * Math.abs(Math.sin(Math.PI * t));
+                const width = 4 + 7 * Math.abs(Math.sin(Math.PI * t));
                 map.setPaintProperty('auckland-railways-hover', 'line-width', width);
                 breathFrame = requestAnimationFrame(animateBreath);
             }
@@ -178,11 +190,9 @@ map.on('load', () => {
                 // Get color and full name
                 var color = '#e63946';
                 var fullName = routeNum;
-                if (routeNum === 'EAST') { color = '#FFD100'; fullName = 'Eastern Line'; }
-                else if (routeNum === 'WEST') { color = '#009A44'; fullName = 'Western Line'; }
-                else if (routeNum === 'SOUTH' || routeNum === 'STH') { color = '#E4002B'; fullName = 'Southern Line'; }
-                else if (routeNum === 'ONE') { color = '#4FC3F7'; fullName = 'Onehunga Line'; }
-                else if (routeNum === 'PUKE') { color = '#A7A9AC'; fullName = 'Pukekohe Line'; }
+                if (routeNum === 'WEST') { color = '#009A44'; fullName = 'East-West Line'; }
+                else if (routeNum === 'SOUTH' || routeNum === 'STH') { color = '#E4002B'; fullName = 'South-City Line'; }
+                else if (routeNum === 'ONE') { color = '#4FC3F7'; fullName = 'Onehunga-West Line'; }
                 else if (routeNum === 'HUIA') { color = '#6C3483'; fullName = 'Te Huia'; }
                 hoverTooltip.innerHTML = fullName;
                 hoverTooltip.style.color = color;

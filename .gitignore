@@ -1,0 +1,3 @@
+*.gpkg-shm
+*.qmd
+*.gpkg-wal

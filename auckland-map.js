@@ -63,6 +63,19 @@ fetch('./OpenData_RailService.geojson')
                 }
             });
 
+            // Add invisible wide line layer for easier hover hitbox
+            map.addLayer({
+                id: 'auckland-railways-hover-hitbox',
+                type: 'line',
+                source: 'auckland-railways',
+                layout: {},
+                paint: {
+                    'line-color': 'rgba(0,0,0,0)',
+                    'line-width': 18,
+                    'line-opacity': 0
+                }
+            });
+
             // Add highlight layer for breathing effect
             map.addLayer({
                 id: 'auckland-railways-hover',
@@ -102,9 +115,9 @@ fetch('./OpenData_RailService.geojson')
 
         function animateBreath() {
             if (!breathing || breathObjectId === null) return;
-            const t = ((performance.now() - breathStart) / 1000) % 2;
+            const t = ((performance.now() - breathStart) / 1500) % 2;
             // Breathing between 6 and 12 px
-            const width = 6 + 6 * Math.abs(Math.sin(Math.PI * t));
+            const width = 6 + 4 * Math.abs(Math.sin(Math.PI * t));
             map.setPaintProperty('auckland-railways-hover', 'line-width', width);
             breathFrame = requestAnimationFrame(animateBreath);
         }
@@ -112,7 +125,9 @@ fetch('./OpenData_RailService.geojson')
         // Tooltip element
         let hoverTooltip = null;
 
-        map.on('mousemove', 'auckland-railways', function (e) {
+    
+
+    map.on('mousemove', 'auckland-railways-hover-hitbox', function (e) {
             const feature = e.features && e.features[0];
             if (!feature) return;
             const objectId = feature.properties.OBJECTID;
@@ -174,7 +189,7 @@ fetch('./OpenData_RailService.geojson')
             }
         });
 
-        map.on('mouseleave', 'auckland-railways', function () {
+    map.on('mouseleave', 'auckland-railways-hover-hitbox', function () {
             map.setFilter('auckland-railways-hover', ['==', 'OBJECTID', -1]);
             breathing = false;
             breathObjectId = null;
@@ -187,7 +202,7 @@ fetch('./OpenData_RailService.geojson')
         });
 
         // Add click event for popup
-        map.on('click', 'auckland-railways', function (e) {
+    map.on('click', 'auckland-railways-hover-hitbox', function (e) {
             const feature = e.features && e.features[0];
             if (feature) {
                 const coordinates = e.lngLat;
@@ -207,45 +222,67 @@ fetch('./OpenData_RailService.geojson')
         });
 
         // Change cursor to pointer when hovering over rail lines
-        map.on('mouseenter', 'auckland-railways', function () {
+        map.on('mouseenter', 'auckland-railways-hover-hitbox', function () {
             map.getCanvas().style.cursor = 'pointer';
         });
-        map.on('mouseleave', 'auckland-railways', function () {
+        map.on('mouseleave', 'auckland-railways-hover-hitbox', function () {
             map.getCanvas().style.cursor = '';
         });
+    })
+    .then(() => {
+
+    // Add train stations as labeled points
+    fetch('./OpenData_RailStation.geojson')
+        .then(response => response.json())
+        .then(stationData => {
+            stationData.features.forEach(f => {
+                var input = f.properties.STOPNAME;
+                var name = input.replace(/\s*Train Station.*$/, "");
+                f.properties.CLEANNAME = name;
+            });
+            map.addSource('auckland-rail-stations', {
+                type: 'geojson',
+                data: stationData
+            });
+            // Add station circles
+            map.addLayer({
+                id: 'auckland-rail-stations-circle',
+                type: 'circle',
+                source: 'auckland-rail-stations',
+                paint: {
+                    'circle-radius': 5,
+                    'circle-color': '#ffffffff',
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#585858'
+                }
+            });
+            // Add station labels, only at zoom level 12 and above
+            map.addLayer({
+                id: 'auckland-rail-stations-label',
+                type: 'symbol',
+                source: 'auckland-rail-stations',
+                layout: {
+                    'text-field': ['get', 'CLEANNAME'],
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': 12,
+                    'text-offset': [0, .9],
+                    'text-anchor': 'top'
+                },
+                paint: {
+                    'text-color': '#656565ff',
+                    'text-halo-color': '#fff',
+                    'text-halo-width': 2
+                }
+                ,
+                minzoom: 11
+            });
+        });
     });
+
+
 const map = new maplibregl.Map({
     container: 'map',
-    style: {
-        version: 8,
-        sources: {
-            osm: {
-                type: 'raster',
-                tiles: [
-                    'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                ],
-                tileSize: 256,
-                attribution: '© OpenStreetMap contributors'
-            }
-        },
-        layers: [
-            {
-                id: 'osm',
-                type: 'raster',
-                source: 'osm',
-                minzoom: 0,
-                maxzoom: 19,
-                paint: {
-                    'raster-brightness-min': 0,
-                    'raster-brightness-max': 1,
-                    'raster-contrast': 0,
-                    'raster-saturation': -1
-                }
-            }
-        ]
-    },
+    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     center: [174.7633, -36.8485], // Auckland, NZ
     zoom: 12
 });

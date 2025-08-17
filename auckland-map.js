@@ -141,6 +141,7 @@ map.on('load', () => {
                         'ONE', -4,
                         'SOUTH', 0,
                         'EAST', -4,
+                        'HUIA', -4,
                         /* other */ 0
                     ]
                 }
@@ -162,18 +163,41 @@ map.on('load', () => {
             }
 
             map.on('mousemove', 'auckland-railways-hover-hitbox', function (e) {
-                const feature = e.features && e.features[0];
-                if (!feature) return;
+                const features = e.features;
+                if (!features || features.length === 0) return;
+                let feature;
+                // Only select randomly if nothing is already selected
+                if (breathObjectId === null) {
+                    feature = features[Math.floor(Math.random() * features.length)];
+                    const objectId = feature.properties.OBJECTID;
+                    const routeNum = feature.properties.ROUTENUMBER;
+                    // Set highlight filter
+                    map.setFilter('auckland-railways-hover', ['==', 'OBJECTID', objectId]);
+                    breathObjectId = objectId;
+                    if (!breathing) {
+                        breathing = true;
+                        breathStart = performance.now();
+                        animateBreath();
+                    }
+                } else {
+                    // Find the currently selected feature in the hovered features
+                    feature = features.find(f => f.properties.OBJECTID === breathObjectId);
+                    if (!feature) {
+                        // If not found, clear selection
+                        map.setFilter('auckland-railways-hover', ['==', 'OBJECTID', -1]);
+                        breathing = false;
+                        breathObjectId = null;
+                        if (breathFrame) cancelAnimationFrame(breathFrame);
+                        map.setPaintProperty('auckland-railways-hover', 'line-width', 0);
+                        if (hoverTooltip) {
+                            hoverTooltip.remove();
+                            hoverTooltip = null;
+                        }
+                        return;
+                    }
+                }
                 const objectId = feature.properties.OBJECTID;
                 const routeNum = feature.properties.ROUTENUMBER;
-                // Set highlight filter
-                map.setFilter('auckland-railways-hover', ['==', 'OBJECTID', objectId]);
-                breathObjectId = objectId;
-                if (!breathing) {
-                    breathing = true;
-                    breathStart = performance.now();
-                    animateBreath();
-                }
                 // Tooltip
                 if (!hoverTooltip) {
                     hoverTooltip = document.createElement('div');
@@ -215,22 +239,7 @@ map.on('load', () => {
             });
 
             map.on('click', 'auckland-railways-hover-hitbox', function (e) {
-                const feature = e.features && e.features[0];
-                if (feature) {
-                    const coordinates = e.lngLat;
-                    const props = feature.properties;
-                    let table = '<table style="border-collapse:collapse;">';
-                    for (const key in props) {
-                        if (props.hasOwnProperty(key)) {
-                            table += `<tr><td style='border:1px solid #ccc;padding:2px 6px;'><strong>${key}</strong></td><td style='border:1px solid #ccc;padding:2px 6px;'>${props[key]}</td></tr>`;
-                        }
-                    }
-                    table += '</table>';
-                    new maplibregl.Popup()
-                        .setLngLat(coordinates)
-                        .setHTML(table)
-                        .addTo(map);
-                }
+                // Implement popup functionality here 
             });
 
             map.on('mouseenter', 'auckland-railways-hover-hitbox', function () {

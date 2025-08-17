@@ -5,6 +5,18 @@ const map = new maplibregl.Map({
     zoom: 11
 });
 
+// Consolidated train service properties
+const SERVICE_PROPERTIES = {
+    EAST:   { color: '#FFD100', fullName: 'Eastern Line',    offset: -4 },
+    WEST:   { color: '#8bc750', fullName: 'East-West Line',  offset: -4 },
+    SOUTH:  { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
+    STH:    { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
+    ONE:    { color: '#00b1ee', fullName: 'Onehunga-West Line', offset: -4 },
+    PUKE:   { color: '#A7A9AC', fullName: 'Pukekohe Line',   offset: 0  },
+    HUIA:   { color: '#f6be16', fullName: 'Te Huia',         offset: -4 }
+};
+
+
 map.on('load', () => {
     Promise.all([
         fetch('./post-CRL-lines.geojson').then(res => res.json()),
@@ -102,12 +114,7 @@ map.on('load', () => {
                     'line-color': [
                         'match',
                         ['get', 'ROUTENUMBER'],
-                        'EAST', '#FFD100',
-                        'WEST', '#009A44',
-                        'SOUTH', '#E4002B',
-                        'ONE', '#4FC3F7',
-                        'PUKE', '#A7A9AC',
-                        'HUIA', '#6C3483',
+                        ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.color]),
                         /* other */ '#e63946'
                     ],
                     'line-width': 0,
@@ -125,23 +132,14 @@ map.on('load', () => {
                     'line-color': [
                         'match',
                         ['get', 'ROUTENUMBER'],
-                        'EAST', '#FFD100',
-                        'WEST', '#009A44',
-                        'SOUTH', '#E4002B',
-                        'ONE', '#4FC3F7',
-                        'PUKE', '#A7A9AC',
-                        'HUIA', '#6C3483',
+                        ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.color]),
                         /* other */ '#e63946'
                     ],
                     'line-width': 3,
                     'line-offset': [
                         'match',
                         ['get', 'ROUTENUMBER'],
-                        'WEST', -4,
-                        'ONE', -4,
-                        'SOUTH', 0,
-                        'EAST', -4,
-                        'HUIA', -4,
+                        ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset]),
                         /* other */ 0
                     ]
                 }
@@ -211,13 +209,10 @@ map.on('load', () => {
                     hoverTooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
                     document.body.appendChild(hoverTooltip);
                 }
-                // Get color and full name
-                var color = '#e63946';
-                var fullName = routeNum;
-                if (routeNum === 'WEST') { color = '#009A44'; fullName = 'East-West Line'; }
-                else if (routeNum === 'SOUTH' || routeNum === 'STH') { color = '#E4002B'; fullName = 'South-City Line'; }
-                else if (routeNum === 'ONE') { color = '#4FC3F7'; fullName = 'Onehunga-West Line'; }
-                else if (routeNum === 'HUIA') { color = '#6C3483'; fullName = 'Te Huia'; }
+                // Get color and full name from SERVICE_PROPERTIES
+                const props = SERVICE_PROPERTIES[routeNum] || {};
+                const color = props.color || '#e63946';
+                const fullName = props.fullName || routeNum;
                 hoverTooltip.innerHTML = fullName;
                 hoverTooltip.style.color = color;
                 // Position tooltip

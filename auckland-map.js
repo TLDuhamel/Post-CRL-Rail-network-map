@@ -150,6 +150,7 @@ map.on('load', () => {
             let breathFrame = null;
             let breathStart = null;
             let breathObjectId = null;
+            let previousBreathObjectId = null;
             let hoverTooltip = null;
 
             function animateBreath() {
@@ -166,7 +167,13 @@ map.on('load', () => {
                 let feature;
                 // Only select randomly if nothing is already selected
                 if (breathObjectId === null) {
-                    feature = features[Math.floor(Math.random() * features.length)];
+                    // Filter out previously selected ID
+                    const selectable = features.filter(f => f.properties.OBJECTID !== previousBreathObjectId);
+                    if (selectable.length === 0)  {
+                        feature = features[0]; // Only the one feature is at this location, we want that one.
+                    } else {
+                        feature = selectable[Math.floor(Math.random() * selectable.length)];
+                    }
                     const objectId = feature.properties.OBJECTID;
                     const routeNum = feature.properties.ROUTENUMBER;
                     // Set highlight filter
@@ -224,6 +231,7 @@ map.on('load', () => {
             map.on('mouseleave', 'auckland-railways-hover-hitbox', function () {
                 map.setFilter('auckland-railways-hover', ['==', 'OBJECTID', -1]);
                 breathing = false;
+                previousBreathObjectId = breathObjectId;
                 breathObjectId = null;
                 if (breathFrame) cancelAnimationFrame(breathFrame);
                 map.setPaintProperty('auckland-railways-hover', 'line-width', 0);

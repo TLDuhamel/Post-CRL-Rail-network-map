@@ -7,17 +7,16 @@ const map = new maplibregl.Map({
 
 // Consolidated train service properties
 const SERVICE_PROPERTIES = {
-    EAST:   { color: '#FFD100', fullName: 'Eastern Line',    offset: -4 },
-    WEST:   { color: '#8bc750', fullName: 'East-West Line',  offset: -4 },
-    SOUTH:  { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
+    EAST:   { color: '#FFD100', fullName: 'Eastern Line',    offset: -1 },
+    WEST:   { color: '#8bc750', fullName: 'East-West Line',  offset: -1 },
     STH:    { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
-    ONE:    { color: '#00b1ee', fullName: 'Onehunga-West Line', offset: -4 },
-    PUKE:   { color: '#A7A9AC', fullName: 'Pukekohe Line',   offset: 0  },
-    HUIA:   { color: '#f6be16', fullName: 'Te Huia',         offset: -4 }
+    ONE:    { color: '#00b1ee', fullName: 'Onehunga-West Line', offset: -1 },
+    HUIA:   { color: '#f6be16', fullName: 'Te Huia',         offset: -1 }
 };
 
 // Add this after map initialization, before map.on('load', ...)
 const toggleContainer = document.createElement('div');
+toggleContainer.style.cursor = 'pointer';
 toggleContainer.style.position = 'absolute';
 toggleContainer.style.top = '16px';
 toggleContainer.style.right = '16px';
@@ -44,6 +43,19 @@ toggleLabel.prepend(toggleCheckbox);
 toggleContainer.appendChild(toggleLabel);
 document.body.appendChild(toggleContainer);
 
+toggleContainer.addEventListener('click', () => {
+    toggleCheckbox.checked = !toggleCheckbox.checked;
+    toggleCheckbox.dispatchEvent(new Event('change'));
+});
+
+// Prevent label/checkbox default click from double-toggling
+toggleCheckbox.addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+toggleLabel.addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
 map.on('load', () => {
     Promise.all([
         fetch('./post-CRL-lines.geojson').then(res => res.json()),
@@ -68,7 +80,8 @@ map.on('load', () => {
                 'circle-color': '#f5f5f5ff',
                 'circle-stroke-width': 1.4,
                 'circle-stroke-color': '#727272ff'
-            }
+            },
+            minzoom: 10
         });
         map.addLayer({
             id: 'auckland-rail-stations-label',
@@ -145,7 +158,22 @@ map.on('load', () => {
                         /* other */ '#e63946'
                     ],
                     'line-width': 0,
-                    'line-opacity': 0.8
+                    'line-opacity': 1,
+                    'line-offset': [
+                        'interpolate', ['linear'], ['zoom'],
+                        10, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 4]),
+                            /* other */ 0
+                        ],
+                        16, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 12]),
+                            /* other */ 0
+                        ]
+                    ]
                 },
                 filter: ['==', 'OBJECTID', -1]
             }, 'auckland-rail-stations-circle'); // Add below stations
@@ -162,12 +190,25 @@ map.on('load', () => {
                         ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.color]),
                         /* other */ '#e63946'
                     ],
-                    'line-width': 3,
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        10, 4, // at zoom 10, 4 pixels
+                        16, 13  // at zoom 16, 13 pixels
+                    ],
                     'line-offset': [
-                        'match',
-                        ['get', 'ROUTENUMBER'],
-                        ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset]),
-                        /* other */ 0
+                        'interpolate', ['linear'], ['zoom'],
+                        10, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 4]),
+                            /* other */ 0
+                        ],
+                        16, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 12]),
+                            /* other */ 0
+                        ]
                     ]
                 }
             }, 'auckland-railways-hover'); // Add below the hover layer

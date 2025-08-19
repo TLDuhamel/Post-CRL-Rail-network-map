@@ -16,6 +16,33 @@ const SERVICE_PROPERTIES = {
     HUIA:   { color: '#f6be16', fullName: 'Te Huia',         offset: -4 }
 };
 
+// Add this after map initialization, before map.on('load', ...)
+const toggleContainer = document.createElement('div');
+toggleContainer.style.position = 'absolute';
+toggleContainer.style.top = '16px';
+toggleContainer.style.right = '16px';
+toggleContainer.style.zIndex = '10';
+toggleContainer.style.background = 'rgba(255,255,255,0.95)';
+toggleContainer.style.padding = '6px 6px';
+toggleContainer.style.borderRadius = '6px';
+toggleContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+toggleContainer.style.fontFamily = 'Arial, sans-serif';
+
+const toggleLabel = document.createElement('label');
+toggleLabel.style.cursor = 'pointer';
+toggleLabel.style.fontWeight = 'bold';
+toggleLabel.style.userSelect = 'none';
+toggleLabel.innerText = 'Show Te Huia';
+
+const toggleCheckbox = document.createElement('input');
+toggleCheckbox.style.cursor = 'pointer';
+toggleCheckbox.type = 'checkbox';
+toggleCheckbox.checked = false;
+toggleCheckbox.style.marginRight = '8px';
+
+toggleLabel.prepend(toggleCheckbox);
+toggleContainer.appendChild(toggleLabel);
+document.body.appendChild(toggleContainer);
 
 map.on('load', () => {
     Promise.all([
@@ -37,10 +64,10 @@ map.on('load', () => {
             type: 'circle',
             source: 'auckland-rail-stations',
             paint: {
-                'circle-radius': 5,
-                'circle-color': '#ffffffff',
-                'circle-stroke-width': 1,
-                'circle-stroke-color': '#585858'
+                'circle-radius': 6,
+                'circle-color': '#f5f5f5ff',
+                'circle-stroke-width': 1.4,
+                'circle-stroke-color': '#727272ff'
             }
         });
         map.addLayer({
@@ -144,6 +171,24 @@ map.on('load', () => {
                     ]
                 }
             }, 'auckland-railways-hover'); // Add below the hover layer
+
+            // --- Te Huia toggle logic ---
+            function setTeHuiaVisibility(visible) {
+                // Filter out Te Huia from the main railways layer
+                const filter = visible
+                    ? ['all']
+                    : ['all', ['!=', ['get', 'ROUTENUMBER'], 'HUIA']];
+                map.setFilter('auckland-railways', filter);
+                map.setFilter('auckland-railways-hover-hitbox', filter);
+                map.setFilter('auckland-railways-hover', filter);
+            }
+
+            toggleCheckbox.addEventListener('change', () => {
+                setTeHuiaVisibility(toggleCheckbox.checked);
+            });
+
+            // Ensure initial state
+            setTeHuiaVisibility(toggleCheckbox.unchecked);
 
             // --- Breathing hover and tooltip logic ---
             let breathing = false;

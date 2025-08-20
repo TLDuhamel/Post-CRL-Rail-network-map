@@ -330,27 +330,31 @@ map.on('load', () => {
     fetch('https://services2.arcgis.com/JkPEgZJGxhSjYOo0/arcgis/rest/services/TrainService/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson')
         .then(response => response.json())
         .then(onlineRailData => {
-            // Dissolve features by ROUTENUMBER (similar to preprocessRailways)
-            const groups = {};
+            // Preprocessing: only keep the longest route for each ROUTENUMBER,
+            // and only keep ROUTENAMEs containing "To Brit" or "Onehunga To Newmarket"
+            const filtered = {};
             onlineRailData.features.forEach(f => {
-                const route = f.properties.ROUTENUMBER || f.properties.route || f.properties.Route || 'UNKNOWN';
-                if (!groups[route]) groups[route] = [];
-                groups[route].push(f);
+                const routeNum = f.properties.ROUTENUMBER;
+                const routeName = f.properties.ROUTENAME || '';
+                const length = f.properties.Shape__Length || 0;
+                if (
+                    routeName.includes('To Brit') ||
+                    routeName.includes('Onehunga To Newmarket')
+                ) {
+                    if (!filtered[routeNum] || length > filtered[routeNum].properties.Shape__Length) {
+                        filtered[routeNum] = f;
+                    }
+                }
             });
-            const dissolved = { type: 'FeatureCollection', features: [] };
-            let objectId = 1000; // Use a different range to avoid collision
-            for (const route in groups) {
-                const fc = { type: 'FeatureCollection', features: groups[route] };
-                let combined = window.turf ? turf.combine(fc) : fc;
-                let snapped = combined.features ? combined.features[0] : combined;
-                snapped.properties = snapped.properties || {};
-                snapped.properties.ROUTENUMBER = route;
-                snapped.properties.OBJECTID = objectId++;
-                dissolved.features.push(snapped);
-            }
+            const longestFeatures = Object.values(filtered);
+            const processedGeojson = {
+                type: 'FeatureCollection',
+                features: longestFeatures
+            };
+
             map.addSource('auckland-railways-online', {
                 type: 'geojson',
-                data: dissolved
+                data: processedGeojson
             });
             map.addLayer({
                 id: 'auckland-railways-online',
@@ -384,7 +388,7 @@ map.on('load', () => {
                         ]
                     ],
                 }
-            });
+            }, 'auckland-railways-hover'); // Add below the hover layer
         });
 });
 

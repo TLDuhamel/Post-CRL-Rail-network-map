@@ -325,4 +325,142 @@ map.on('load', () => {
             turfScript.onload = preprocessRailways;
         }
     });
+
+    // Add a new railway layer using the online source
+    fetch('https://services2.arcgis.com/JkPEgZJGxhSjYOo0/arcgis/rest/services/TrainService/FeatureServer/1/query?outFields=*&where=1%3D1&f=geojson')
+        .then(response => response.json())
+        .then(onlineRailData => {
+            // Dissolve features by ROUTENUMBER (similar to preprocessRailways)
+            const groups = {};
+            onlineRailData.features.forEach(f => {
+                const route = f.properties.ROUTENUMBER || f.properties.route || f.properties.Route || 'UNKNOWN';
+                if (!groups[route]) groups[route] = [];
+                groups[route].push(f);
+            });
+            const dissolved = { type: 'FeatureCollection', features: [] };
+            let objectId = 1000; // Use a different range to avoid collision
+            for (const route in groups) {
+                const fc = { type: 'FeatureCollection', features: groups[route] };
+                let combined = window.turf ? turf.combine(fc) : fc;
+                let snapped = combined.features ? combined.features[0] : combined;
+                snapped.properties = snapped.properties || {};
+                snapped.properties.ROUTENUMBER = route;
+                snapped.properties.OBJECTID = objectId++;
+                dissolved.features.push(snapped);
+            }
+            map.addSource('auckland-railways-online', {
+                type: 'geojson',
+                data: dissolved
+            });
+            map.addLayer({
+                id: 'auckland-railways-online',
+                type: 'line',
+                source: 'auckland-railways-online',
+                paint: {
+                    'line-color': [
+                        'match',
+                        ['get', 'ROUTENUMBER'],
+                        ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.color]),
+                        /* other */ '#e63946'
+                    ],
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        10, 4, // at zoom 10, 4 pixels
+                        16, 13  // at zoom 16, 13 pixels
+                    ],
+                    'line-offset': [
+                        'interpolate', ['linear'], ['zoom'],
+                        10, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 4]),
+                            /* other */ 0
+                        ],
+                        16, [
+                            'match',
+                            ['get', 'ROUTENUMBER'],
+                            ...Object.entries(SERVICE_PROPERTIES).flatMap(([key, val]) => [key, val.offset * 12]),
+                            /* other */ 0
+                        ]
+                    ],
+                }
+            });
+        });
+});
+
+// Add UI toggle for railways source
+const railSourceToggleContainer = document.createElement('div');
+railSourceToggleContainer.style.position = 'absolute';
+railSourceToggleContainer.style.top = '16px';
+railSourceToggleContainer.style.left = '50%';
+railSourceToggleContainer.style.transform = 'translateX(-50%)';
+railSourceToggleContainer.style.zIndex = '20';
+railSourceToggleContainer.style.background = 'rgba(255,255,255,0.95)';
+railSourceToggleContainer.style.padding = '8px 20px';
+railSourceToggleContainer.style.borderRadius = '8px';
+railSourceToggleContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+railSourceToggleContainer.style.fontFamily = 'Arial, sans-serif';
+railSourceToggleContainer.style.display = 'flex';
+railSourceToggleContainer.style.gap = '16px';
+railSourceToggleContainer.style.alignItems = 'center';
+
+const afterCRLLabel = document.createElement('label');
+afterCRLLabel.style.cursor = 'pointer';
+afterCRLLabel.style.fontWeight = 'bold';
+afterCRLLabel.innerText = 'After CRL';
+
+const beforeCRLLabel = document.createElement('label');
+beforeCRLLabel.style.cursor = 'pointer';
+beforeCRLLabel.style.fontWeight = 'bold';
+beforeCRLLabel.innerText = 'Before CRL';
+
+const afterCRLRadio = document.createElement('input');
+afterCRLRadio.type = 'radio';
+afterCRLRadio.name = 'railSource';
+afterCRLRadio.checked = true;
+afterCRLRadio.style.marginRight = '6px';
+
+const beforeCRLRadio = document.createElement('input');
+beforeCRLRadio.type = 'radio';
+beforeCRLRadio.name = 'railSource';
+beforeCRLRadio.checked = false;
+beforeCRLRadio.style.marginRight = '6px';
+
+afterCRLLabel.prepend(afterCRLRadio);
+beforeCRLLabel.prepend(beforeCRLRadio);
+railSourceToggleContainer.appendChild(afterCRLLabel);
+railSourceToggleContainer.appendChild(beforeCRLLabel);
+document.body.appendChild(railSourceToggleContainer);
+
+// Helper to set visibility of layers
+function setRailLayerVisibility(showOnline) {
+    if (map.getLayer('auckland-railways-online')) {
+        map.setLayoutProperty('auckland-railways-online', 'visibility', showOnline ? 'visible' : 'none');
+    }
+    if (map.getLayer('auckland-railways')) {
+        map.setLayoutProperty('auckland-railways', 'visibility', showOnline ? 'none' : 'visible');
+    }
+    if (map.getLayer('auckland-railways-hover')) {
+        map.setLayoutProperty('auckland-railways-hover', 'visibility', showOnline ? 'none' : 'visible');
+    }
+    if (map.getLayer('auckland-railways-hover-hitbox')) {
+        map.setLayoutProperty('auckland-railways-hover-hitbox', 'visibility', showOnline ? 'none' : 'visible');
+    }
+}
+
+// Toggle logic
+afterCRLRadio.addEventListener('change', () => {
+    if (afterCRLRadio.checked) {
+        setRailLayerVisibility(false);
+    }
+});
+beforeCRLRadio.addEventListener('change', () => {
+    if (beforeCRLRadio.checked) {
+        setRailLayerVisibility(true);
+    }
+});
+
+// Ensure correct initial visibility after all layers are loaded
+map.on('idle', () => {
+    setRailLayerVisibility(beforeCRLRadio.checked);
 });

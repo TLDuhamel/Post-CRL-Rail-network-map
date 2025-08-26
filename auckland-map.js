@@ -11,7 +11,7 @@ const SERVICE_PROPERTIES = {
     WEST:   { color: '#8bc750', fullName: 'East-West Line',  offset: -1 },
     STH:    { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
     ONE:    { color: '#00b1ee', fullName: 'Onehunga-West Line', offset: -1 },
-    HUIA:   { color: '#f6be16', fullName: 'Te Huia',         offset: -1 }
+    HUIA:   { color: '#2e2e2eff', fullName: 'Te Huia',         offset: -1 }
 };
 
 // Add this after map initialization, before map.on('load', ...)
@@ -393,48 +393,36 @@ map.on('load', () => {
 });
 
 // Add UI toggle for railways source
-const railSourceToggleContainer = document.createElement('div');
-railSourceToggleContainer.style.position = 'absolute';
-railSourceToggleContainer.style.top = '16px';
-railSourceToggleContainer.style.left = '50%';
-railSourceToggleContainer.style.transform = 'translateX(-50%)';
-railSourceToggleContainer.style.zIndex = '20';
-railSourceToggleContainer.style.background = 'rgba(255,255,255,0.95)';
-railSourceToggleContainer.style.padding = '8px 20px';
-railSourceToggleContainer.style.borderRadius = '8px';
-railSourceToggleContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-railSourceToggleContainer.style.fontFamily = 'Arial, sans-serif';
-railSourceToggleContainer.style.display = 'flex';
-railSourceToggleContainer.style.gap = '16px';
-railSourceToggleContainer.style.alignItems = 'center';
+const railSourceToggleContainer = document.getElementById('railSourceToggleContainer');
+const railSourceToggleSlider = document.getElementById('railSourceToggleSlider');
+const railSourceBefore = document.getElementById('railSourceBefore');
+const railSourceAfter = document.getElementById('railSourceAfter');
 
-const afterCRLLabel = document.createElement('label');
-afterCRLLabel.style.cursor = 'pointer';
-afterCRLLabel.style.fontWeight = 'bold';
-afterCRLLabel.innerText = 'After CRL';
+let showOnline = false; // false = After CRL, true = Before CRL
 
-const beforeCRLLabel = document.createElement('label');
-beforeCRLLabel.style.cursor = 'pointer';
-beforeCRLLabel.style.fontWeight = 'bold';
-beforeCRLLabel.innerText = 'Before CRL';
+function updateRailSourceToggleUI() {
+    var horizontalEdgePadding = 5;
+    var disabledTextColour = '#7c7c7c77';
+    var enabledTextColour = '#1976d2'
+    if (showOnline) {
+        railSourceToggleSlider.style.left = horizontalEdgePadding+'px';
+        railSourceBefore.style.color = enabledTextColour;
+        railSourceAfter.style.color = disabledTextColour;
+    } else {
+        railSourceToggleSlider.style.left = horizontalEdgePadding + 100 + 'px';
+        railSourceBefore.style.color = disabledTextColour;
+        railSourceAfter.style.color = enabledTextColour;
+    }
+}
 
-const afterCRLRadio = document.createElement('input');
-afterCRLRadio.type = 'radio';
-afterCRLRadio.name = 'railSource';
-afterCRLRadio.checked = true;
-afterCRLRadio.style.marginRight = '6px';
+railSourceToggleContainer.addEventListener('click', () => {
+    showOnline = !showOnline;
+    setRailLayerVisibility(showOnline);
+    updateRailSourceToggleUI();
+});
 
-const beforeCRLRadio = document.createElement('input');
-beforeCRLRadio.type = 'radio';
-beforeCRLRadio.name = 'railSource';
-beforeCRLRadio.checked = false;
-beforeCRLRadio.style.marginRight = '6px';
-
-afterCRLLabel.prepend(afterCRLRadio);
-beforeCRLLabel.prepend(beforeCRLRadio);
-railSourceToggleContainer.appendChild(afterCRLLabel);
-railSourceToggleContainer.appendChild(beforeCRLLabel);
-document.body.appendChild(railSourceToggleContainer);
+// Initial UI state
+updateRailSourceToggleUI();
 
 // Helper to set visibility of layers
 function setRailLayerVisibility(showOnline) {
@@ -466,5 +454,6 @@ beforeCRLRadio.addEventListener('change', () => {
 
 // Ensure correct initial visibility after all layers are loaded
 map.on('idle', () => {
-    setRailLayerVisibility(beforeCRLRadio.checked);
+    setRailLayerVisibility(showOnline);
+    updateRailSourceToggleUI();
 });

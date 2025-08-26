@@ -11,6 +11,52 @@
 </head>
 <body>
     <div id="map"></div>
+    <div id="railSourceToggleContainer" style="
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        background: rgba(255,255,255,0.95);
+        padding: 8px 20px;
+        border-radius: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 180px;
+        height: 40px;
+        user-select: none;
+    ">
+        <div id="railSourceToggleSlider" style="
+            position: absolute;
+            left: 4px;
+            width: 50%;
+            height: 80%;
+            background: #e0e0e0;
+            border-radius: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+            transition: left 0.2s;
+            z-index: 1;
+        "></div>
+        <div id="railSourceBefore" style="
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+            z-index: 2;
+            position: relative;
+        ">Before</div>
+        <div id="railSourceAfter" style="
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+            z-index: 2;
+            position: relative;
+        ">After</div>
+    </div>
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <script src="auckland-map.js"></script>
 </body>

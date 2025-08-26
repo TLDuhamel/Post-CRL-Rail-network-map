@@ -11,6 +11,8 @@
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- Rail source skeuomorphic toggle -->
     <div id="railSourceToggleContainer" style="
         position: absolute;
         top: 16px;
@@ -57,6 +59,26 @@
             position: relative;
         ">After</div>
     </div>
+
+    <!-- Te Huia toggle -->
+    <div id="toggleContainer" style="
+        cursor: pointer;
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        background: rgba(255,255,255,0.95);
+        padding: 6px 6px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        font-family: Arial, sans-serif;
+    ">
+        <label id="toggleLabel" style="cursor: pointer; font-weight: bold; user-select: none;">
+            <input id="toggleCheckbox" type="checkbox" style="cursor: pointer; margin-right: 8px;">
+            Show Te Huia
+        </label>
+    </div>
+
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <script src="auckland-map.js"></script>
 </body>

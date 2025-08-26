@@ -11,38 +11,10 @@ const SERVICE_PROPERTIES = {
     WEST:   { color: '#8bc750', fullName: 'East-West Line',  offset: -1 },
     STH:    { color: '#ee3a31', fullName: 'South-City Line', offset: 0  },
     ONE:    { color: '#00b1ee', fullName: 'Onehunga-West Line', offset: -1 },
-    HUIA:   { color: '#2e2e2eff', fullName: 'Te Huia',         offset: -1 }
+    HUIA:   { color: '#5a5a5aff', fullName: 'Te Huia',         offset: -1 }
 };
 
 // Add this after map initialization, before map.on('load', ...)
-const toggleContainer = document.createElement('div');
-toggleContainer.style.cursor = 'pointer';
-toggleContainer.style.position = 'absolute';
-toggleContainer.style.top = '16px';
-toggleContainer.style.right = '16px';
-toggleContainer.style.zIndex = '10';
-toggleContainer.style.background = 'rgba(255,255,255,0.95)';
-toggleContainer.style.padding = '6px 6px';
-toggleContainer.style.borderRadius = '6px';
-toggleContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-toggleContainer.style.fontFamily = 'Arial, sans-serif';
-
-const toggleLabel = document.createElement('label');
-toggleLabel.style.cursor = 'pointer';
-toggleLabel.style.fontWeight = 'bold';
-toggleLabel.style.userSelect = 'none';
-toggleLabel.innerText = 'Show Te Huia';
-
-const toggleCheckbox = document.createElement('input');
-toggleCheckbox.style.cursor = 'pointer';
-toggleCheckbox.type = 'checkbox';
-toggleCheckbox.checked = false;
-toggleCheckbox.style.marginRight = '8px';
-
-toggleLabel.prepend(toggleCheckbox);
-toggleContainer.appendChild(toggleLabel);
-document.body.appendChild(toggleContainer);
-
 toggleContainer.addEventListener('click', () => {
     toggleCheckbox.checked = !toggleCheckbox.checked;
     toggleCheckbox.dispatchEvent(new Event('change'));
@@ -398,13 +370,13 @@ const railSourceToggleSlider = document.getElementById('railSourceToggleSlider')
 const railSourceBefore = document.getElementById('railSourceBefore');
 const railSourceAfter = document.getElementById('railSourceAfter');
 
-let showOnline = false; // false = After CRL, true = Before CRL
+let showBeforeCRL = false; // false = After CRL, true = Before CRL
 
 function updateRailSourceToggleUI() {
     var horizontalEdgePadding = 5;
     var disabledTextColour = '#7c7c7c77';
     var enabledTextColour = '#1976d2'
-    if (showOnline) {
+    if (showBeforeCRL) {
         railSourceToggleSlider.style.left = horizontalEdgePadding+'px';
         railSourceBefore.style.color = enabledTextColour;
         railSourceAfter.style.color = disabledTextColour;
@@ -416,8 +388,8 @@ function updateRailSourceToggleUI() {
 }
 
 railSourceToggleContainer.addEventListener('click', () => {
-    showOnline = !showOnline;
-    setRailLayerVisibility(showOnline);
+    showBeforeCRL = !showBeforeCRL;
+    setRailLayerVisibility(showBeforeCRL);
     updateRailSourceToggleUI();
 });
 
@@ -454,6 +426,6 @@ beforeCRLRadio.addEventListener('change', () => {
 
 // Ensure correct initial visibility after all layers are loaded
 map.on('idle', () => {
-    setRailLayerVisibility(showOnline);
+    setRailLayerVisibility(showBeforeCRL);
     updateRailSourceToggleUI();
 });
